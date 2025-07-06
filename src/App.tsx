@@ -1,23 +1,29 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { AudioVisualizer } from "@/components/ui/audio-visualizer";
+import { Button } from "@/components/ui/button";
 import { Settings } from "./Settings";
-import "./App.css";
+import { Settings as SettingsIcon, Mic, Square } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AudioRecorder {
-  start: () => void;
+  start: () => Promise<MediaStream | null>;
   stop: () => Promise<Blob>;
   isRecording: boolean;
+  stream: MediaStream | null;
 }
 
 function useAudioRecorder(): AudioRecorder {
   const [isRecording, setIsRecording] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  const start = async () => {
+  const start = async (): Promise<MediaStream | null> => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(mediaStream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -29,8 +35,11 @@ function useAudioRecorder(): AudioRecorder {
 
       mediaRecorder.start();
       setIsRecording(true);
+      setStream(mediaStream);
+      return mediaStream;
     } catch (error) {
       console.error("Error starting recording:", error);
+      return null;
     }
   };
 
@@ -41,113 +50,43 @@ function useAudioRecorder(): AudioRecorder {
           const blob = new Blob(chunksRef.current, { type: "audio/wav" });
           resolve(blob);
           setIsRecording(false);
+          
+          // Clean up stream
+          if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setStream(null);
+          }
         };
         mediaRecorderRef.current.stop();
-        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
       }
     });
   };
 
-  return { start, stop, isRecording };
-}
-
-function WaveformVisualizer({ isRecording }: { isRecording: boolean }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (isRecording) {
-      startVisualization();
-    } else {
-      stopVisualization();
-    }
-
-    return () => {
-      stopVisualization();
-    };
-  }, [isRecording]);
-
-  const startVisualization = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const audioContext = new AudioContext();
-      const analyser = audioContext.createAnalyser();
-      const source = audioContext.createMediaStreamSource(stream);
-      
-      analyser.fftSize = 256;
-      source.connect(analyser);
-      
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
-      
-      draw();
-    } catch (error) {
-      console.error("Error starting visualization:", error);
-    }
-  };
-
-  const stopVisualization = () => {
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-  };
-
-  const draw = () => {
-    if (!canvasRef.current || !analyserRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const bufferLength = analyserRef.current.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    analyserRef.current.getByteFrequencyData(dataArray);
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const barWidth = (canvas.width / bufferLength) * 2.5;
-    let barHeight;
-    let x = 0;
-
-    ctx.fillStyle = "#4A90E2";
-    for (let i = 0; i < bufferLength; i++) {
-      barHeight = (dataArray[i] / 255) * canvas.height;
-      
-      ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-      x += barWidth + 1;
-    }
-
-    animationRef.current = requestAnimationFrame(draw);
-  };
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={300}
-      height={100}
-      className="waveform-canvas"
-    />
-  );
+  return { start, stop, isRecording, stream };
 }
 
 function App() {
-  const [status, setStatus] = useState<string>("Press Cmd+Shift+V to start dictation");
+  const [status, setStatus] = useState<string>("Listening...");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const audioRecorder = useAudioRecorder();
 
+  // Listen for start recording event from backend
+  useEffect(() => {
+    const unlisten = listen("start-recording", () => {
+      handleStartRecording();
+    });
+
+    return () => {
+      unlisten.then(fn => fn());
+    };
+  }, []);
+
   const handleStartRecording = async () => {
     setError(null);
-    setStatus("Listening... Click to stop");
-    audioRecorder.start();
+    setStatus("Listening...");
+    await audioRecorder.start();
   };
 
   const handleStopRecording = async () => {
@@ -161,12 +100,12 @@ function App() {
       const arrayBuffer = await audioBlob.arrayBuffer();
       const audioData = new Uint8Array(arrayBuffer);
       
-      // Get API keys (in production, these should be stored securely)
+      // Get API keys
       const groqApiKey = localStorage.getItem('groq_api_key') || '';
       const anthropicApiKey = localStorage.getItem('anthropic_api_key') || '';
       
       if (!groqApiKey || !anthropicApiKey) {
-        setError("API keys not configured. Click the gear icon to set them.");
+        setError("API keys not configured. Click the settings icon to set them.");
         setStatus("Configuration needed");
         setIsProcessing(false);
         return;
@@ -205,7 +144,7 @@ function App() {
     }
   };
 
-  const handleCanvasClick = () => {
+  const toggleRecording = () => {
     if (audioRecorder.isRecording) {
       handleStopRecording();
     } else {
@@ -214,39 +153,71 @@ function App() {
   };
 
   return (
-    <div className="dictation-container">
-      <div className="dictation-window">
-        <div className="window-header">
-          <div className="status-text">{status}</div>
-          <button 
-            className="settings-btn"
+    <div className="flex h-screen w-screen items-center justify-center">
+      <div className="relative w-96 rounded-2xl border border-border/50 bg-background/80 p-6 shadow-2xl backdrop-blur-xl">
+        {/* Header */}
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex-1 text-center">
+            <p className="text-sm text-muted-foreground">{status}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setShowSettings(true)}
-            title="Settings"
+            className="h-8 w-8"
           >
-            ⚙️
-          </button>
+            <SettingsIcon className="h-4 w-4" />
+          </Button>
         </div>
-        
+
+        {/* Error message */}
         {error && (
-          <div className="error-message">
+          <div className="mb-4 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         )}
-        
-        <div 
-          className="visualizer-container"
-          onClick={handleCanvasClick}
-          style={{ cursor: audioRecorder.isRecording ? 'pointer' : 'default' }}
-        >
-          <WaveformVisualizer isRecording={audioRecorder.isRecording} />
+
+        {/* Audio Visualizer */}
+        <div className="mb-6 h-32">
+          <AudioVisualizer
+            stream={audioRecorder.stream}
+            isRecording={audioRecorder.isRecording}
+            onClick={toggleRecording}
+          />
         </div>
-        
+
+        {/* Controls */}
+        <div className="flex justify-center">
+          <Button
+            onClick={toggleRecording}
+            disabled={isProcessing}
+            size="lg"
+            className={cn(
+              "h-12 w-12 rounded-full transition-all",
+              audioRecorder.isRecording
+                ? "bg-destructive hover:bg-destructive/90"
+                : "bg-primary hover:bg-primary/90"
+            )}
+          >
+            {audioRecorder.isRecording ? (
+              <Square className="h-5 w-5" />
+            ) : (
+              <Mic className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
+
+        {/* Processing overlay */}
         {isProcessing && (
-          <div className="processing-indicator">
-            <div className="spinner"></div>
+          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-background/80 backdrop-blur-sm">
+            <div className="flex items-center space-x-2">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <span className="text-sm text-muted-foreground">Processing...</span>
+            </div>
           </div>
         )}
-        
+
+        {/* Settings Modal */}
         <Settings 
           isOpen={showSettings} 
           onClose={() => setShowSettings(false)} 

@@ -1,4 +1,5 @@
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, RunEvent, WindowEvent, Emitter};
+use tauri::{menu::{Menu, MenuItem}, tray::TrayIconBuilder};
 use serde::{Deserialize, Serialize};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
@@ -18,6 +19,7 @@ async fn show_dictation_window(app: AppHandle) -> Result<(), String> {
     let window = app.get_webview_window("main").ok_or("Window not found")?;
     window.show().map_err(|e| e.to_string())?;
     window.set_focus().map_err(|e| e.to_string())?;
+    window.emit("start-recording", ()).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -114,6 +116,33 @@ pub fn run() {
         .setup(|app| {
             let app_handle = app.handle().clone();
             
+            // Create tray menu
+            let quit_item = MenuItem::with_id(app, "quit", "Quit Vocal", true, None::<&str>)?;
+            let show_item = MenuItem::with_id(app, "show", "Show Dictation Window", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+            
+            // Create tray icon
+            let _tray = TrayIconBuilder::new()
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(move |app, event| {
+                    match event.id.as_ref() {
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        "show" => {
+                            let app_handle = app.app_handle().clone();
+                            tauri::async_runtime::spawn(async move {
+                                if let Err(e) = show_dictation_window(app_handle).await {
+                                    eprintln!("Failed to show dictation window: {}", e);
+                                }
+                            });
+                        }
+                        _ => {}
+                    }
+                })
+                .build(app)?;
+            
             // Register global shortcut
             app.global_shortcut().on_shortcut("CommandOrControl+Shift+V", move |_app, _event, _shortcut| {
                 let app_handle = app_handle.clone();
@@ -133,6 +162,16 @@ pub fn run() {
             refine_prompt,
             copy_to_clipboard
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let RunEvent::WindowEvent { label, event: WindowEvent::Focused(focused), .. } = &event {
+                if label == "main" && !focused {
+                    // Hide window when it loses focus
+                    if let Some(window) = app_handle.get_webview_window("main") {
+                        let _ = window.hide();
+                    }
+                }
+            }
+        });
 }

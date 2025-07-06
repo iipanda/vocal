@@ -10,6 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "Vocal - AI Dictation",
@@ -22,7 +23,8 @@
         "skipTaskbar": true,
         "center": true,
         "visible": false,
-        "label": "main"
+        "label": "main",
+        "focus": false
       }
     ],
     "security": {
