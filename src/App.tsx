@@ -165,33 +165,33 @@ function App() {
   return (
     <div className="flex h-screen w-screen items-center justify-center">
       <div className="relative w-96 rounded-2xl border border-white/10 bg-black p-6 shadow-2xl">
-        <div className="mb-4 text-center">
+        {/* Fixed height status area */}
+        <div className="mb-2 text-center h-4 flex items-center justify-center">
           <p className="text-sm text-white/70">{status}</p>
         </div>
 
-        {error && (
-          <div className="mb-4 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
-            {error}
-          </div>
-        )}
+        {/* Fixed height error area - minimal space */}
+        <div className="mb-2 h-6 flex items-center justify-center">
+          {error && (
+            <div className="w-full rounded border border-destructive/20 bg-destructive/10 px-2 py-1 text-xs text-destructive text-center">
+              {error}
+            </div>
+          )}
+        </div>
 
-        <div className="mb-6 h-32">
+        {/* Smaller visualizer height */}
+        <div className="mb-3 h-20">
           <AudioVisualizer
             stream={audioRecorder.audioStream}
             isRecording={audioRecorder.isRecording}
           />
         </div>
 
-        <div className="flex flex-col items-center space-y-3">
-          {!audioRecorder.isRecording ? (
-            <div className="text-center text-white/50 text-sm">
-              Press your hotkey to start recording
-            </div>
-          ) : (
-            <div className="text-center text-white/40 text-xs">
-              Press Enter to submit • Escape to abort
-            </div>
-          )}
+        {/* Fixed height instruction area */}
+        <div className="h-6 flex items-center justify-center">
+          <div className="text-center text-white/50 text-sm">
+            Press your hotkey to start recording
+          </div>
         </div>
 
         {audioRecorder.isTranscribing && (

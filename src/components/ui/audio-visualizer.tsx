@@ -194,9 +194,11 @@ export function AudioVisualizer({
         
         const averageAmplitude = weightSum > 0 ? totalAmplitude / weightSum : 0;
         const normalizedHeight = averageAmplitude / 255;
+        // Scale to actual canvas height - use 80% of half height for proper scaling
+        const maxBarHeight = (cssHeight / 2) * 0.8;
         const barHeight = Math.max(
           AUDIO_CONFIG.MIN_BAR_HEIGHT,
-          normalizedHeight * centerY * 0.9
+          normalizedHeight * maxBarHeight
         );
 
         const x = startX + i * (barWidth + AUDIO_CONFIG.BAR_SPACING);
