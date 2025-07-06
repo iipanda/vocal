@@ -12,13 +12,31 @@
   "app": {
     "windows": [
       {
-        "title": "vocal",
-        "width": 800,
-        "height": 600
+        "title": "Vocal - AI Dictation",
+        "width": 400,
+        "height": 300,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "center": true,
+        "visible": false,
+        "label": "main"
       }
     ],
     "security": {
       "csp": null
+    }
+  },
+  "plugins": {
+    "globalShortcut": {
+      "shortcuts": [
+        {
+          "shortcut": "CommandOrControl+Shift+V",
+          "handler": "show_dictation_window"
+        }
+      ]
     }
   },
   "bundle": {

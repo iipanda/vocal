@@ -1,14 +1,138 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+use tauri::{AppHandle, Manager};
+use serde::{Deserialize, Serialize};
+use tauri_plugin_clipboard_manager::ClipboardExt;
+use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+#[derive(Debug, Serialize, Deserialize)]
+struct TranscriptionResponse {
+    text: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct RefinementResponse {
+    refined_text: String,
+}
+
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+async fn show_dictation_window(app: AppHandle) -> Result<(), String> {
+    let window = app.get_webview_window("main").ok_or("Window not found")?;
+    window.show().map_err(|e| e.to_string())?;
+    window.set_focus().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn hide_dictation_window(app: AppHandle) -> Result<(), String> {
+    let window = app.get_webview_window("main").ok_or("Window not found")?;
+    window.hide().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn transcribe_audio(audio_data: Vec<u8>, api_key: String) -> Result<String, String> {
+    let client = reqwest::Client::new();
+    
+    let form = reqwest::multipart::Form::new()
+        .part("file", reqwest::multipart::Part::bytes(audio_data)
+            .file_name("audio.wav")
+            .mime_str("audio/wav").unwrap())
+        .text("model", "whisper-large-v3")
+        .text("response_format", "json");
+
+    let response = client
+        .post("https://api.groq.com/openai/v1/audio/transcriptions")
+        .header("Authorization", format!("Bearer {}", api_key))
+        .multipart(form)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    let transcription: TranscriptionResponse = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+    Ok(transcription.text)
+}
+
+#[tauri::command]
+async fn refine_prompt(text: String, api_key: String) -> Result<String, String> {
+    let client = reqwest::Client::new();
+    
+    let prompt = format!(
+        "Please refine the following spoken text into a clear, concise AI prompt. Remove filler words, improve grammar, and make it more suitable for AI interaction while preserving the original intent:\n\n{}",
+        text
+    );
+    
+    let request_body = serde_json::json!({
+        "model": "claude-3-sonnet-20240229",
+        "max_tokens": 1000,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+    });
+
+    let response = client
+        .post("https://api.anthropic.com/v1/messages")
+        .header("x-api-key", api_key)
+        .header("anthropic-version", "2023-06-01")
+        .header("content-type", "application/json")
+        .json(&request_body)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    let response_json: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+    let refined_text = response_json["content"][0]["text"]
+        .as_str()
+        .ok_or("No content found in response")?;
+
+    Ok(refined_text.to_string())
+}
+
+#[tauri::command]
+async fn copy_to_clipboard(text: String, app: AppHandle) -> Result<(), String> {
+    app.clipboard()
+        .write_text(text)
+        .map_err(|e| format!("Failed to copy to clipboard: {}", e))?;
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .setup(|app| {
+            let app_handle = app.handle().clone();
+            
+            // Register global shortcut
+            app.global_shortcut().on_shortcut("CommandOrControl+Shift+V", move |_app, _event, _shortcut| {
+                let app_handle = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Err(e) = show_dictation_window(app_handle).await {
+                        eprintln!("Failed to show dictation window: {}", e);
+                    }
+                });
+            }).unwrap();
+            
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            show_dictation_window,
+            hide_dictation_window,
+            transcribe_audio,
+            refine_prompt,
+            copy_to_clipboard
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
