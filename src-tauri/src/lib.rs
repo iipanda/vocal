@@ -3,6 +3,10 @@ use tauri::{menu::{Menu, MenuItem}, tray::TrayIconBuilder};
 use serde::{Deserialize, Serialize};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
+use std::sync::Mutex;
+
+// Store the current shortcut to unregister it later
+static CURRENT_SHORTCUT: Mutex<Option<String>> = Mutex::new(None);
 
 #[derive(Debug, Serialize, Deserialize)]
 struct TranscriptionResponse {
@@ -192,6 +196,39 @@ async fn copy_to_clipboard(text: String, app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn update_global_shortcut(shortcut: String, app: AppHandle) -> Result<(), String> {
+    println!("Updating global shortcut to: {}", shortcut);
+    
+    // Unregister the current shortcut
+    let global_shortcut = app.global_shortcut();
+    if let Ok(mut current) = CURRENT_SHORTCUT.lock() {
+        if let Some(old_shortcut) = current.as_ref() {
+            if let Err(e) = global_shortcut.unregister(old_shortcut.as_str()) {
+                println!("Warning: Failed to unregister old shortcut '{}': {}", old_shortcut, e);
+            }
+        }
+        *current = Some(shortcut.clone());
+    }
+    
+    // Register the new shortcut
+    let app_handle = app.clone();
+    global_shortcut.on_shortcut(shortcut.as_str(), move |_app, _event, _shortcut| {
+        let app_handle = app_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            if let Err(e) = show_dictation_window(app_handle).await {
+                eprintln!("Failed to show dictation window: {}", e);
+            }
+        });
+    }).map_err(|e| {
+        println!("Failed to register new shortcut '{}': {}", shortcut, e);
+        format!("Failed to register shortcut: {}", e)
+    })?;
+    
+    println!("Successfully updated global shortcut to: {}", shortcut);
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -244,8 +281,15 @@ pub fn run() {
                 })
                 .build(app)?;
             
-            // Register global shortcut
-            app.global_shortcut().on_shortcut("CommandOrControl+Shift+V", move |_app, _event, _shortcut| {
+            // Register global shortcut with default value
+            let default_shortcut = "CommandOrControl+Shift+V";
+            
+            // Store the initial shortcut
+            if let Ok(mut current) = CURRENT_SHORTCUT.lock() {
+                *current = Some(default_shortcut.to_string());
+            }
+            
+            app.global_shortcut().on_shortcut(default_shortcut, move |_app, _event, _shortcut| {
                 let app_handle = app_handle.clone();
                 tauri::async_runtime::spawn(async move {
                     if let Err(e) = show_dictation_window(app_handle).await {
@@ -262,7 +306,8 @@ pub fn run() {
             show_settings_window,
             transcribe_audio,
             refine_prompt,
-            copy_to_clipboard
+            copy_to_clipboard,
+            update_global_shortcut
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

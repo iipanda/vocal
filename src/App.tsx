@@ -1,9 +1,7 @@
 import { AudioVisualizer } from "@/components/ui/audio-visualizer";
-import { Button } from "@/components/ui/button";
 import { useAudioRecording } from "@/hooks/use-audio-recording";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { Square, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 function App() {
@@ -155,35 +153,11 @@ function App() {
         </div>
 
         <div className="flex flex-col items-center space-y-3">
-          <div className="flex justify-center space-x-4">
-            {audioRecorder.isRecording ? (
-              <>
-                <Button
-                  onClick={audioRecorder.stopRecording}
-                  disabled={audioRecorder.isTranscribing}
-                  size="lg"
-                  className="h-12 w-12 rounded-full bg-green-600 hover:bg-green-700 transition-all"
-                >
-                  <Square className="h-5 w-5" />
-                </Button>
-                <Button
-                  onClick={handleAbortRecording}
-                  disabled={audioRecorder.isTranscribing}
-                  size="lg"
-                  variant="outline"
-                  className="h-12 w-12 rounded-full border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </>
-            ) : (
-              <div className="text-center text-white/50 text-sm">
-                Press Cmd+Shift+V to start recording
-              </div>
-            )}
-          </div>
-
-          {audioRecorder.isRecording && !audioRecorder.isTranscribing && (
+          {!audioRecorder.isRecording ? (
+            <div className="text-center text-white/50 text-sm">
+              Press your hotkey to start recording
+            </div>
+          ) : (
             <div className="text-center text-white/40 text-xs">
               Press Enter to submit • Escape to abort
             </div>
