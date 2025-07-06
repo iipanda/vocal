@@ -29,6 +29,23 @@ export function useAudioRecording({
     checkSpeechSupport();
   }, [transcribeAudio]);
 
+  const cleanupRecording = () => {
+    // Stop the recording immediately without processing
+    recordAudio.stop();
+    
+    // Clean up all state and streams
+    setIsRecording(false);
+    setIsTranscribing(false);
+    setIsListening(false);
+    
+    if (audioStream) {
+      audioStream.getTracks().forEach((track) => track.stop());
+      setAudioStream(null);
+    }
+    
+    activeRecordingRef.current = null;
+  };
+
   const stopRecording = async () => {
     setIsRecording(false);
     setIsTranscribing(true);
@@ -89,5 +106,6 @@ export function useAudioRecording({
     audioStream,
     toggleListening,
     stopRecording,
+    cleanupRecording,
   };
 }

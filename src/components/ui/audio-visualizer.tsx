@@ -218,9 +218,16 @@ export function AudioVisualizer({
   return (
     <div
       ref={containerRef}
-      className="h-full w-full rounded-lg bg-black flex items-center justify-center"
+      className="h-full w-full rounded-lg bg-black flex items-center justify-center relative overflow-hidden"
     >
       <canvas ref={canvasRef} className="h-full w-full rounded-lg" />
+      {/* Edge fade out masks */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Left edge fade */}
+        <div className="absolute left-0 top-0 h-full w-5 bg-gradient-to-r from-black to-transparent"></div>
+        {/* Right edge fade */}
+        <div className="absolute right-0 top-0 h-full w-5 bg-gradient-to-l from-black to-transparent"></div>
+      </div>
     </div>
   );
 }

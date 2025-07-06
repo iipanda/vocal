@@ -2,7 +2,7 @@ import { AudioVisualizer } from "@/components/ui/audio-visualizer";
 import { useAudioRecording } from "@/hooks/use-audio-recording";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 function App() {
   const [status, setStatus] = useState<string>("Listening...");
@@ -87,50 +87,80 @@ function App() {
 
   useEffect(() => {
     document.body.classList.add("dark", "main-window");
-    return () => document.body.classList.remove("dark", "main-window");
+    return () => {
+      document.body.classList.remove("dark", "main-window");
+    };
   }, []);
 
+  const toggleListeningRef = useRef(audioRecorder.toggleListening);
+
   useEffect(() => {
-    const unlisten = listen("start-recording", () => {
-      audioRecorder.toggleListening();
+    toggleListeningRef.current = audioRecorder.toggleListening;
+  });
+
+  useEffect(() => {
+    const unlistenPromise = listen("start-recording", () => {
+      setStatus("Listening...");
+      setError(null);
+      if (
+        !recordingStateRef.current.isRecording &&
+        !recordingStateRef.current.isTranscribing
+      ) {
+        toggleListeningRef.current();
+      }
     });
 
     return () => {
-      unlisten.then((fn) => fn());
+      unlistenPromise.then((fn) => fn());
     };
-  }, [audioRecorder.toggleListening]);
+  }, []);
+
+  const recordingStateRef = useRef({
+    isRecording: false,
+    isTranscribing: false,
+  });
+  const stopRecordingRef = useRef(audioRecorder.stopRecording);
+  const cleanupRecordingRef = useRef(audioRecorder.cleanupRecording);
+
+  useEffect(() => {
+    recordingStateRef.current = {
+      isRecording: audioRecorder.isRecording,
+      isTranscribing: audioRecorder.isTranscribing,
+    };
+    stopRecordingRef.current = audioRecorder.stopRecording;
+    cleanupRecordingRef.current = audioRecorder.cleanupRecording;
+  });
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        if (audioRecorder.isRecording) {
-          audioRecorder.stopRecording();
-          setStatus("Listening...");
-          setError(null);
+        if (
+          recordingStateRef.current.isRecording ||
+          recordingStateRef.current.isTranscribing
+        ) {
+          cleanupRecordingRef.current();
         }
+        setStatus("Listening...");
+        setError(null);
         invoke("hide_dictation_window");
       } else if (event.key === "Enter" || event.key === "Return") {
-        if (audioRecorder.isRecording && !audioRecorder.isTranscribing) {
-          audioRecorder.stopRecording();
+        if (
+          recordingStateRef.current.isRecording &&
+          !recordingStateRef.current.isTranscribing
+        ) {
+          stopRecordingRef.current();
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [audioRecorder.isRecording, audioRecorder.isTranscribing]);
-
-  const handleAbortRecording = async () => {
-    if (audioRecorder.isRecording) {
-      if (audioRecorder.audioStream) {
-        audioRecorder.audioStream.getTracks().forEach((track) => track.stop());
-      }
-      setStatus("Listening...");
-      setError(null);
-      // Hide window when aborting
-      await invoke("hide_dictation_window");
-    }
-  };
+  }, [
+    audioRecorder.isRecording,
+    audioRecorder.isTranscribing,
+    audioRecorder.stopRecording,
+    audioRecorder.cleanupRecording,
+  ]);
 
   return (
     <div className="flex h-screen w-screen items-center justify-center">
