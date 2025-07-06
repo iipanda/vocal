@@ -25,6 +25,20 @@
         "visible": false,
         "label": "main",
         "focus": false
+      },
+      {
+        "title": "Vocal Settings",
+        "width": 600,
+        "height": 500,
+        "resizable": false,
+        "decorations": true,
+        "transparent": false,
+        "alwaysOnTop": false,
+        "skipTaskbar": true,
+        "center": true,
+        "visible": false,
+        "label": "settings",
+        "url": "settings.html"
       }
     ],
     "security": {

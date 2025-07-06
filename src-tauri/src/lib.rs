@@ -31,6 +31,14 @@ async fn hide_dictation_window(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn show_settings_window(app: AppHandle) -> Result<(), String> {
+    let window = app.get_webview_window("settings").ok_or("Settings window not found")?;
+    window.show().map_err(|e| e.to_string())?;
+    window.set_focus().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 async fn transcribe_audio(audio_data: Vec<u8>, api_key: String) -> Result<String, String> {
     let client = reqwest::Client::new();
     
@@ -58,16 +66,15 @@ async fn transcribe_audio(audio_data: Vec<u8>, api_key: String) -> Result<String
 }
 
 #[tauri::command]
-async fn refine_prompt(text: String, api_key: String) -> Result<String, String> {
+async fn refine_prompt(text: String, api_key: String, system_prompt: Option<String>) -> Result<String, String> {
     let client = reqwest::Client::new();
     
-    let prompt = format!(
-        "Please refine the following spoken text into a clear, concise AI prompt. Remove filler words, improve grammar, and make it more suitable for AI interaction while preserving the original intent:\n\n{}",
-        text
-    );
+    let default_prompt = "Refine the following spoken text into a clear, concise AI prompt. Remove filler words, improve grammar, and make it more suitable for AI interaction while preserving the original intent. Return ONLY the refined prompt text with no additional explanation, formatting, or quotation marks:".to_string();
+    let system_text = system_prompt.unwrap_or(default_prompt);
+    let prompt = format!("{}\n\n{}", system_text, text);
     
     let request_body = serde_json::json!({
-        "model": "claude-3-sonnet-20240229",
+        "model": "claude-sonnet-4-20250514",
         "max_tokens": 1000,
         "messages": [
             {
@@ -125,7 +132,8 @@ pub fn run() {
             // Create tray menu
             let quit_item = MenuItem::with_id(app, "quit", "Quit Vocal", true, None::<&str>)?;
             let show_item = MenuItem::with_id(app, "show", "Show Dictation Window", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+            let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_item, &settings_item, &quit_item])?;
             
             // Create tray icon
             let _tray = TrayIconBuilder::new()
@@ -142,6 +150,14 @@ pub fn run() {
                             tauri::async_runtime::spawn(async move {
                                 if let Err(e) = show_dictation_window(app_handle).await {
                                     eprintln!("Failed to show dictation window: {}", e);
+                                }
+                            });
+                        }
+                        "settings" => {
+                            let app_handle = app.app_handle().clone();
+                            tauri::async_runtime::spawn(async move {
+                                if let Err(e) = show_settings_window(app_handle).await {
+                                    eprintln!("Failed to show settings window: {}", e);
                                 }
                             });
                         }
@@ -165,6 +181,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             show_dictation_window,
             hide_dictation_window,
+            show_settings_window,
             transcribe_audio,
             refine_prompt,
             copy_to_clipboard

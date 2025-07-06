@@ -3,8 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { AudioVisualizer } from "@/components/ui/audio-visualizer";
 import { Button } from "@/components/ui/button";
-import { Settings } from "./Settings";
-import { Settings as SettingsIcon, Mic, Square } from "lucide-react";
+import { Mic, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AudioRecorder {
@@ -64,12 +63,12 @@ function useAudioRecorder(): AudioRecorder {
   };
 
   const cleanup = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
-    }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
     }
     setIsRecording(false);
   };
@@ -80,7 +79,6 @@ function useAudioRecorder(): AudioRecorder {
 function App() {
   const [status, setStatus] = useState<string>("Listening...");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const audioRecorder = useAudioRecorder();
 
@@ -162,9 +160,11 @@ function App() {
       
       // Refine prompt
       setStatus("Refining prompt...");
+      const systemPrompt = localStorage.getItem('system_prompt');
       const refinedPrompt = await invoke<string>("refine_prompt", {
         text: transcribedText,
-        apiKey: anthropicApiKey
+        apiKey: anthropicApiKey,
+        systemPrompt: systemPrompt
       });
       
       // Copy to clipboard
@@ -198,18 +198,8 @@ function App() {
     <div className="flex h-screen w-screen items-center justify-center">
       <div className="relative w-96 rounded-2xl border border-white/10 bg-black p-6 shadow-2xl">
         {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex-1 text-center">
-            <p className="text-sm text-white/70">{status}</p>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowSettings(true)}
-            className="h-8 w-8"
-          >
-            <SettingsIcon className="h-4 w-4 text-white/70" />
-          </Button>
+        <div className="mb-4 text-center">
+          <p className="text-sm text-white/70">{status}</p>
         </div>
 
         {/* Error message */}
@@ -259,11 +249,6 @@ function App() {
           </div>
         )}
 
-        {/* Settings Modal */}
-        <Settings 
-          isOpen={showSettings} 
-          onClose={() => setShowSettings(false)} 
-        />
       </div>
     </div>
   );
