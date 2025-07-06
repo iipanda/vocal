@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { AudioVisualizer } from "@/components/ui/audio-visualizer";
 import { Button } from "@/components/ui/button";
-import { Mic, Square } from "lucide-react";
+import { Mic, Square, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AudioRecorder {
@@ -123,6 +123,25 @@ function App() {
     };
   }, []);
 
+  // Handle escape key to abort recording and close window
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (audioRecorder.isRecording) {
+          audioRecorder.cleanup();
+          setStatus("Listening...");
+          setIsProcessing(false);
+          setError(null);
+        }
+        // Close window
+        invoke("hide_dictation_window");
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [audioRecorder.isRecording]);
+
   const handleStartRecording = async () => {
     setError(null);
     setStatus("Listening...");
@@ -158,6 +177,8 @@ function App() {
         apiKey: groqApiKey
       });
       
+      console.log("Raw transcript:", transcribedText);
+      
       // Refine prompt
       setStatus("Refining prompt...");
       const systemPrompt = localStorage.getItem('system_prompt');
@@ -166,6 +187,8 @@ function App() {
         apiKey: anthropicApiKey,
         systemPrompt: systemPrompt
       });
+      
+      console.log("Refined prompt:", refinedPrompt);
       
       // Copy to clipboard
       await invoke("copy_to_clipboard", { text: refinedPrompt });
@@ -186,11 +209,12 @@ function App() {
     }
   };
 
-  const toggleRecording = () => {
+  const handleAbortRecording = () => {
     if (audioRecorder.isRecording) {
-      handleStopRecording();
-    } else {
-      handleStartRecording();
+      audioRecorder.cleanup();
+      setStatus("Listening...");
+      setIsProcessing(false);
+      setError(null);
     }
   };
 
@@ -214,29 +238,36 @@ function App() {
           <AudioVisualizer
             stream={audioRecorder.stream}
             isRecording={audioRecorder.isRecording}
-            onClick={toggleRecording}
           />
         </div>
 
         {/* Controls */}
-        <div className="flex justify-center">
-          <Button
-            onClick={toggleRecording}
-            disabled={isProcessing}
-            size="lg"
-            className={cn(
-              "h-12 w-12 rounded-full transition-all",
-              audioRecorder.isRecording
-                ? "bg-destructive hover:bg-destructive/90"
-                : "bg-primary hover:bg-primary/90"
-            )}
-          >
-            {audioRecorder.isRecording ? (
-              <Square className="h-5 w-5" />
-            ) : (
-              <Mic className="h-5 w-5" />
-            )}
-          </Button>
+        <div className="flex justify-center space-x-4">
+          {audioRecorder.isRecording ? (
+            <>
+              <Button
+                onClick={handleStopRecording}
+                disabled={isProcessing}
+                size="lg"
+                className="h-12 w-12 rounded-full bg-green-600 hover:bg-green-700 transition-all"
+              >
+                <Square className="h-5 w-5" />
+              </Button>
+              <Button
+                onClick={handleAbortRecording}
+                disabled={isProcessing}
+                size="lg"
+                variant="outline"
+                className="h-12 w-12 rounded-full border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </>
+          ) : (
+            <div className="text-center text-white/50 text-sm">
+              Press Cmd+Shift+V to start recording
+            </div>
+          )}
         </div>
 
         {/* Processing overlay */}

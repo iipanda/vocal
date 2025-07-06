@@ -16,13 +16,11 @@ const AUDIO_CONFIG = {
 interface AudioVisualizerProps {
   stream: MediaStream | null;
   isRecording: boolean;
-  onClick: () => void;
 }
 
 export function AudioVisualizer({
   stream,
   isRecording,
-  onClick,
 }: AudioVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -185,8 +183,7 @@ export function AudioVisualizer({
   return (
     <div
       ref={containerRef}
-      className="h-full w-full cursor-pointer rounded-lg bg-background/80 backdrop-blur flex items-center justify-center"
-      onClick={onClick}
+      className="h-full w-full rounded-lg bg-background/80 backdrop-blur flex items-center justify-center"
     >
       <canvas ref={canvasRef} className="h-full w-full rounded-lg" />
     </div>
