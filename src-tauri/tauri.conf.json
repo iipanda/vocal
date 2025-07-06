@@ -14,8 +14,8 @@
     "windows": [
       {
         "title": "Vocal - AI Dictation",
-        "width": 400,
-        "height": 300,
+        "width": 1920,
+        "height": 1080,
         "resizable": false,
         "decorations": false,
         "transparent": true,
