@@ -189,9 +189,15 @@ function App() {
 
         {/* Fixed height instruction area */}
         <div className="h-6 flex items-center justify-center">
-          <div className="text-center text-white/50 text-sm">
-            Press your hotkey to start recording
-          </div>
+          {!audioRecorder.isRecording ? (
+            <div className="text-center text-white/50 text-sm">
+              Press your hotkey to start recording
+            </div>
+          ) : (
+            <div className="text-center text-white/40 text-xs">
+              Press Enter to submit • Escape to abort
+            </div>
+          )}
         </div>
 
         {audioRecorder.isTranscribing && (
