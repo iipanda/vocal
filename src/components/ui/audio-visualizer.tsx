@@ -1,11 +1,14 @@
 import { useEffect, useRef } from "react";
 
 const AUDIO_CONFIG = {
-  FFT_SIZE: 512,
+  FFT_SIZE: 2048,
   SMOOTHING: 0.8,
   MIN_BAR_HEIGHT: 2,
   MIN_BAR_WIDTH: 2,
   BAR_SPACING: 1,
+  // Focus on human voice frequency range (80Hz - 8kHz)
+  MIN_FREQUENCY: 80,
+  MAX_FREQUENCY: 8000,
   COLOR: {
     MIN_INTENSITY: 100,
     MAX_INTENSITY: 255,
@@ -154,11 +157,43 @@ export function AudioVisualizer({
       const startX = AUDIO_CONFIG.BAR_SPACING;
       const centerY = cssHeight / 2;
 
-      const step = Math.floor(bufferLength / numBars);
+      // Calculate frequency resolution
+      const sampleRate = audioContextRef.current?.sampleRate || 44100;
+      const frequencyResolution = sampleRate / AUDIO_CONFIG.FFT_SIZE;
+      
+      // Convert frequency range to bin indices
+      const minBin = Math.floor(AUDIO_CONFIG.MIN_FREQUENCY / frequencyResolution);
+      const maxBin = Math.floor(AUDIO_CONFIG.MAX_FREQUENCY / frequencyResolution);
+      const usableBins = maxBin - minBin;
+      
+      // Create logarithmic frequency bands for more natural voice representation
+      const logMin = Math.log(AUDIO_CONFIG.MIN_FREQUENCY);
+      const logMax = Math.log(AUDIO_CONFIG.MAX_FREQUENCY);
+      const logStep = (logMax - logMin) / numBars;
 
       for (let i = 0; i < numBars; i++) {
-        const dataIndex = i * step;
-        const normalizedHeight = frequencyData[dataIndex] / 255;
+        // Calculate logarithmic frequency range for this bar
+        const freqStart = Math.exp(logMin + i * logStep);
+        const freqEnd = Math.exp(logMin + (i + 1) * logStep);
+        
+        // Convert to bin indices
+        const binStart = Math.floor(freqStart / frequencyResolution);
+        const binEnd = Math.ceil(freqEnd / frequencyResolution);
+        
+        // Ensure we have at least some bins to analyze
+        const actualBinEnd = Math.max(binStart + 1, binEnd);
+        
+        // Calculate weighted average instead of max for smoother visualization
+        let totalAmplitude = 0;
+        let weightSum = 0;
+        for (let bin = binStart; bin < actualBinEnd && bin < bufferLength; bin++) {
+          const weight = 1; // Equal weighting for simplicity
+          totalAmplitude += frequencyData[bin] * weight;
+          weightSum += weight;
+        }
+        
+        const averageAmplitude = weightSum > 0 ? totalAmplitude / weightSum : 0;
+        const normalizedHeight = averageAmplitude / 255;
         const barHeight = Math.max(
           AUDIO_CONFIG.MIN_BAR_HEIGHT,
           normalizedHeight * centerY * 0.9

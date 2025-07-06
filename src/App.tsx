@@ -122,13 +122,15 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [audioRecorder.isRecording, audioRecorder.isTranscribing]);
 
-  const handleAbortRecording = () => {
+  const handleAbortRecording = async () => {
     if (audioRecorder.isRecording) {
       if (audioRecorder.audioStream) {
         audioRecorder.audioStream.getTracks().forEach((track) => track.stop());
       }
       setStatus("Listening...");
       setError(null);
+      // Hide window when aborting
+      await invoke("hide_dictation_window");
     }
   };
 
