@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const DEFAULT_SYSTEM_PROMPT = "Refine the following spoken text into a clear, concise AI prompt. Remove filler words, improve grammar, and make it more suitable for AI interaction while preserving the original intent. Return ONLY the refined prompt text with no additional explanation, formatting, or quotation marks:";
+const DEFAULT_SYSTEM_PROMPT = "Clean up the following spoken text by correcting any speech recognition errors, removing filler words (um, uh, like, you know, etc.), and fixing grammar while preserving the exact original meaning and intent. Do not shorten the content, change the tone, or alter the user's specific requests. Simply make it read naturally as if it were typed instead of spoken. Return only the cleaned text:";
 
 function SettingsApp() {
   const [groqApiKey, setGroqApiKey] = useState("");
