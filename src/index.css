@@ -5,6 +5,9 @@
 
 body {
   background: transparent;
+}
+
+body.main-window {
   overflow: hidden;
 }
 

@@ -82,10 +82,10 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const audioRecorder = useAudioRecorder();
 
-  // Add dark class to body on mount
+  // Add dark class and main-window class to body on mount
   useEffect(() => {
-    document.body.classList.add('dark');
-    return () => document.body.classList.remove('dark');
+    document.body.classList.add('dark', 'main-window');
+    return () => document.body.classList.remove('dark', 'main-window');
   }, []);
 
   // Listen for start recording event from backend
