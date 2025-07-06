@@ -72,6 +72,12 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const audioRecorder = useAudioRecorder();
 
+  // Add dark class to body on mount
+  useEffect(() => {
+    document.body.classList.add('dark');
+    return () => document.body.classList.remove('dark');
+  }, []);
+
   // Listen for start recording event from backend
   useEffect(() => {
     const unlisten = listen("start-recording", () => {

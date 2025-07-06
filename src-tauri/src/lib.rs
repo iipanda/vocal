@@ -116,6 +116,12 @@ pub fn run() {
         .setup(|app| {
             let app_handle = app.handle().clone();
             
+            // Hide dock icon on macOS
+            #[cfg(target_os = "macos")]
+            {
+                app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            }
+            
             // Create tray menu
             let quit_item = MenuItem::with_id(app, "quit", "Quit Vocal", true, None::<&str>)?;
             let show_item = MenuItem::with_id(app, "show", "Show Dictation Window", true, None::<&str>)?;
