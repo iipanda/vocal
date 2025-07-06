@@ -9,25 +9,6 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const fileName = `vocal-recording-${timestamp}.webm`;
-
-    try {
-      const url = URL.createObjectURL(audioBlob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      console.log(`Audio recording saved as: ${fileName}`);
-    } catch (saveError) {
-      console.error("Failed to save audio file:", saveError);
-    }
-
     const arrayBuffer = await audioBlob.arrayBuffer();
     const audioData = new Uint8Array(arrayBuffer);
 
@@ -46,7 +27,7 @@ function App() {
       apiKey: groqApiKey,
     });
 
-    console.log(`Raw transcript (${fileName}):`, transcribedText);
+    console.log("Raw transcript:", transcribedText);
     return transcribedText;
   };
 
