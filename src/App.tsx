@@ -28,12 +28,26 @@ function useAudioRecorder(): AudioRecorder {
       chunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
+        console.log(`Audio data chunk received: ${event.data.size} bytes`);
         if (event.data.size > 0) {
           chunksRef.current.push(event.data);
         }
       };
 
+      mediaRecorder.onstart = () => {
+        console.log("MediaRecorder started");
+      };
+
+      mediaRecorder.onstop = () => {
+        console.log(`MediaRecorder stopped. Total chunks: ${chunksRef.current.length}`);
+      };
+
+      mediaRecorder.onerror = (event) => {
+        console.error("MediaRecorder error:", event);
+      };
+
       mediaRecorder.start();
+      console.log("Recording started");
       setIsRecording(true);
       setStream(mediaStream);
       return mediaStream;
@@ -48,6 +62,7 @@ function useAudioRecorder(): AudioRecorder {
       if (mediaRecorderRef.current && isRecording) {
         mediaRecorderRef.current.onstop = () => {
           const blob = new Blob(chunksRef.current, { type: "audio/wav" });
+          console.log(`Recording stopped. Blob size: ${blob.size} bytes, duration estimate: ${blob.size / 16000}s`);
           resolve(blob);
           setIsRecording(false);
           
@@ -57,16 +72,20 @@ function useAudioRecorder(): AudioRecorder {
             setStream(null);
           }
         };
+        console.log("Stopping MediaRecorder...");
         mediaRecorderRef.current.stop();
       }
     });
   };
 
   const cleanup = () => {
+    console.log("Cleanup called");
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      console.log("Stopping MediaRecorder during cleanup");
       mediaRecorderRef.current.stop();
     }
     if (stream) {
+      console.log("Stopping media stream tracks");
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
     }
@@ -156,6 +175,28 @@ function App() {
     
     try {
       const audioBlob = await audioRecorder.stop();
+      
+      // Save audio blob to temp file for debugging
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = `vocal-recording-${timestamp}.wav`;
+      
+      try {
+        // Create a download link to save the file locally
+        const url = URL.createObjectURL(audioBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        console.log(`Audio recording saved as: ${fileName}`);
+      } catch (saveError) {
+        console.error("Failed to save audio file:", saveError);
+      }
+      
       const arrayBuffer = await audioBlob.arrayBuffer();
       const audioData = new Uint8Array(arrayBuffer);
       
@@ -177,7 +218,7 @@ function App() {
         apiKey: groqApiKey
       });
       
-      console.log("Raw transcript:", transcribedText);
+      console.log(`Raw transcript (${fileName}):`, transcribedText);
       
       // Refine prompt
       setStatus("Refining prompt...");
@@ -188,7 +229,7 @@ function App() {
         systemPrompt: systemPrompt
       });
       
-      console.log("Refined prompt:", refinedPrompt);
+      console.log(`Refined prompt (${fileName}):`, refinedPrompt);
       
       // Copy to clipboard
       await invoke("copy_to_clipboard", { text: refinedPrompt });
@@ -201,7 +242,7 @@ function App() {
       }, 2000);
       
     } catch (error) {
-      console.error("Error processing audio:", error);
+      console.error(`Error processing audio (${fileName || 'unknown'}):`, error);
       setError(error instanceof Error ? error.message : "Error processing audio");
       setStatus("Error occurred");
     } finally {

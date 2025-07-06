@@ -16,17 +16,21 @@ struct RefinementResponse {
 
 #[tauri::command]
 async fn show_dictation_window(app: AppHandle) -> Result<(), String> {
+    println!("Showing dictation window and starting recording...");
     let window = app.get_webview_window("main").ok_or("Window not found")?;
     window.show().map_err(|e| e.to_string())?;
     window.set_focus().map_err(|e| e.to_string())?;
     window.emit("start-recording", ()).map_err(|e| e.to_string())?;
+    println!("Dictation window shown and recording event emitted");
     Ok(())
 }
 
 #[tauri::command]
 async fn hide_dictation_window(app: AppHandle) -> Result<(), String> {
+    println!("Hiding dictation window");
     let window = app.get_webview_window("main").ok_or("Window not found")?;
     window.hide().map_err(|e| e.to_string())?;
+    println!("Dictation window hidden");
     Ok(())
 }
 
@@ -40,6 +44,7 @@ async fn show_settings_window(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 async fn transcribe_audio(audio_data: Vec<u8>, api_key: String) -> Result<String, String> {
+    println!("Starting transcription - audio data size: {} bytes", audio_data.len());
     let client = reqwest::Client::new();
     
     let form = reqwest::multipart::Form::new()
@@ -49,39 +54,51 @@ async fn transcribe_audio(audio_data: Vec<u8>, api_key: String) -> Result<String
         .text("model", "whisper-large-v3")
         .text("response_format", "json");
 
+    println!("Sending transcription request to Groq API...");
     let response = client
         .post("https://api.groq.com/openai/v1/audio/transcriptions")
         .header("Authorization", format!("Bearer {}", api_key))
         .multipart(form)
         .send()
         .await
-        .map_err(|e| format!("Request failed: {}", e))?;
+        .map_err(|e| {
+            println!("Transcription request failed: {}", e);
+            format!("Request failed: {}", e)
+        })?;
 
+    println!("Transcription response status: {}", response.status());
     let transcription: TranscriptionResponse = response
         .json()
         .await
-        .map_err(|e| format!("Failed to parse response: {}", e))?;
+        .map_err(|e| {
+            println!("Failed to parse transcription response: {}", e);
+            format!("Failed to parse response: {}", e)
+        })?;
 
+    println!("Raw transcription result: '{}'", transcription.text);
     Ok(transcription.text)
 }
 
 #[tauri::command]
 async fn refine_prompt(text: String, api_key: String, system_prompt: Option<String>) -> Result<String, String> {
+    println!("Starting prompt refinement for text: '{}'", text);
     let client = reqwest::Client::new();
     let system_text = system_prompt.unwrap();
-    let prompt = format!("{}\n\n{}", system_text, text);
+    println!("Using system prompt length: {} chars", system_text.len());
     
     let request_body = serde_json::json!({
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 1000,
+        "max_tokens": 64000,
+        "system": system_text,
         "messages": [
             {
                 "role": "user",
-                "content": prompt
+                "content": text
             }
         ]
     });
 
+    println!("Sending refinement request to Claude API...");
     let response = client
         .post("https://api.anthropic.com/v1/messages")
         .header("x-api-key", api_key)
@@ -90,25 +107,41 @@ async fn refine_prompt(text: String, api_key: String, system_prompt: Option<Stri
         .json(&request_body)
         .send()
         .await
-        .map_err(|e| format!("Request failed: {}", e))?;
+        .map_err(|e| {
+            println!("Claude request failed: {}", e);
+            format!("Request failed: {}", e)
+        })?;
 
+    println!("Claude response status: {}", response.status());
     let response_json: serde_json::Value = response
         .json()
         .await
-        .map_err(|e| format!("Failed to parse response: {}", e))?;
+        .map_err(|e| {
+            println!("Failed to parse Claude response: {}", e);
+            format!("Failed to parse response: {}", e)
+        })?;
 
     let refined_text = response_json["content"][0]["text"]
         .as_str()
-        .ok_or("No content found in response")?;
+        .ok_or_else(|| {
+            println!("No content found in Claude response: {:?}", response_json);
+            "No content found in response".to_string()
+        })?;
 
+    println!("Refined prompt result: '{}'", refined_text);
     Ok(refined_text.to_string())
 }
 
 #[tauri::command]
 async fn copy_to_clipboard(text: String, app: AppHandle) -> Result<(), String> {
+    println!("Copying to clipboard: '{}' ({} chars)", text, text.len());
     app.clipboard()
         .write_text(text)
-        .map_err(|e| format!("Failed to copy to clipboard: {}", e))?;
+        .map_err(|e| {
+            println!("Failed to copy to clipboard: {}", e);
+            format!("Failed to copy to clipboard: {}", e)
+        })?;
+    println!("Successfully copied to clipboard");
     Ok(())
 }
 
