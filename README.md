@@ -14,16 +14,19 @@ A cross-platform dictation application that captures speech, transcribes it usin
 ## Quick Start
 
 1. **Install Dependencies**
+
    ```bash
    bun install
    ```
 
 2. **Configure API Keys**
+
    - Get a Groq API key from [groq.com](https://groq.com)
    - Get an Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
    - Run the app and click the settings gear icon to configure your API keys
 
 3. **Run the Application**
+
    ```bash
    bun run tauri dev
    ```
@@ -45,16 +48,19 @@ A cross-platform dictation application that captures speech, transcribes it usin
 ## Development
 
 ### Build for Production
+
 ```bash
 bun run tauri build
 ```
 
 ### Project Structure
+
 - `src/` - React frontend components
 - `src-tauri/` - Rust backend with Tauri integration
 - `src-tauri/src/lib.rs` - Main application logic and API integrations
 
 ### API Integration
+
 - **Groq API**: Used for speech-to-text transcription with Whisper model
 - **Anthropic API**: Used for prompt refinement with Claude model
 
@@ -82,9 +88,15 @@ API keys are stored in localStorage for development. For production deployment, 
 - **Window Not Appearing**: Try the global hotkey `Cmd+Shift+V`
 - **Clipboard Issues**: Ensure clipboard permissions are granted
 
+## To-Do List for Future Development
+
+1. **Add animations with Framer Motion**
+2. **Multiple profiles with different hotkeys**
+3. **Visual polish (general improvements)**
+
 ## Future Enhancements
 
-- Custom hotkey configuration
+- Custom hotkey configuration ✅
 - Local transcription options
 - Multiple AI provider support
 - Prompt history and templates
