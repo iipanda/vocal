@@ -12,6 +12,7 @@ interface AudioRecorder {
   stop: () => Promise<Blob>;
   isRecording: boolean;
   stream: MediaStream | null;
+  cleanup: () => void;
 }
 
 function useAudioRecorder(): AudioRecorder {
@@ -62,7 +63,18 @@ function useAudioRecorder(): AudioRecorder {
     });
   };
 
-  return { start, stop, isRecording, stream };
+  const cleanup = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
+
+  return { start, stop, isRecording, stream, cleanup };
 }
 
 function App() {
@@ -86,6 +98,30 @@ function App() {
 
     return () => {
       unlisten.then(fn => fn());
+    };
+  }, []);
+
+  // Listen for window hide events to stop recording
+  useEffect(() => {
+    const unlisten = listen("tauri://blur", () => {
+      if (audioRecorder.isRecording) {
+        audioRecorder.cleanup();
+        setStatus("Listening...");
+        setIsProcessing(false);
+      }
+    });
+
+    return () => {
+      unlisten.then(fn => fn());
+    };
+  }, [audioRecorder.isRecording]);
+
+  // Cleanup microphone when component unmounts
+  useEffect(() => {
+    return () => {
+      if (audioRecorder.isRecording) {
+        audioRecorder.cleanup();
+      }
     };
   }, []);
 
@@ -160,7 +196,7 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen items-center justify-center">
-      <div className="relative w-96 rounded-2xl border border-white/10 bg-black/90 p-6 shadow-2xl backdrop-blur-xl">
+      <div className="relative w-96 rounded-2xl border border-white/10 bg-black p-6 shadow-2xl">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <div className="flex-1 text-center">
@@ -215,7 +251,7 @@ function App() {
 
         {/* Processing overlay */}
         {isProcessing && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/80 backdrop-blur-sm">
+          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/80">
             <div className="flex items-center space-x-2">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
               <span className="text-sm text-white/70">Processing...</span>
