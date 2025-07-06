@@ -36,9 +36,40 @@ async fn hide_dictation_window(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 async fn show_settings_window(app: AppHandle) -> Result<(), String> {
-    let window = app.get_webview_window("settings").ok_or("Settings window not found")?;
-    window.show().map_err(|e| e.to_string())?;
-    window.set_focus().map_err(|e| e.to_string())?;
+    // Try to get existing window first
+    if let Some(window) = app.get_webview_window("settings") {
+        window.show().map_err(|e| e.to_string())?;
+        window.set_focus().map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+    
+    // If window doesn't exist, create a new one
+    println!("Settings window not found, creating new one...");
+    use tauri::{WebviewWindowBuilder, WebviewUrl};
+    
+    let settings_window = WebviewWindowBuilder::new(
+        &app,
+        "settings",
+        WebviewUrl::App("settings.html".into())
+    )
+    .title("Vocal Settings")
+    .inner_size(600.0, 500.0)
+    .resizable(false)
+    .decorations(true)
+    .transparent(false)
+    .always_on_top(false)
+    .skip_taskbar(true)
+    .center()
+    .visible(false)
+    .build()
+    .map_err(|e| {
+        println!("Failed to create settings window: {}", e);
+        format!("Failed to create settings window: {}", e)
+    })?;
+    
+    settings_window.show().map_err(|e| e.to_string())?;
+    settings_window.set_focus().map_err(|e| e.to_string())?;
+    println!("Settings window created and shown");
     Ok(())
 }
 
