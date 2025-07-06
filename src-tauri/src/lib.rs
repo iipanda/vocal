@@ -66,7 +66,15 @@ async fn transcribe_audio(audio_data: Vec<u8>, api_key: String) -> Result<String
             format!("Request failed: {}", e)
         })?;
 
-    println!("Transcription response status: {}", response.status());
+    let status = response.status();
+    println!("Transcription response status: {}", status);
+    
+    if !status.is_success() {
+        let error_body = response.text().await.unwrap_or_else(|_| "Unable to read error response".to_string());
+        println!("Transcription API error ({}): {}", status, error_body);
+        return Err(format!("Transcription failed ({}): {}", status, error_body));
+    }
+    
     let transcription: TranscriptionResponse = response
         .json()
         .await
@@ -112,7 +120,15 @@ async fn refine_prompt(text: String, api_key: String, system_prompt: Option<Stri
             format!("Request failed: {}", e)
         })?;
 
-    println!("Claude response status: {}", response.status());
+    let status = response.status();
+    println!("Claude response status: {}", status);
+    
+    if !status.is_success() {
+        let error_body = response.text().await.unwrap_or_else(|_| "Unable to read error response".to_string());
+        println!("Claude API error ({}): {}", status, error_body);
+        return Err(format!("Claude request failed ({}): {}", status, error_body));
+    }
+    
     let response_json: serde_json::Value = response
         .json()
         .await
