@@ -183,7 +183,7 @@ export function AudioVisualizer({
   return (
     <div
       ref={containerRef}
-      className="h-full w-full rounded-lg bg-background/80 backdrop-blur flex items-center justify-center"
+      className="h-full w-full rounded-lg bg-black flex items-center justify-center"
     >
       <canvas ref={canvasRef} className="h-full w-full rounded-lg" />
     </div>
