@@ -143,7 +143,7 @@ function App() {
     };
   }, []);
 
-  // Handle escape key to abort recording and close window
+  // Handle keyboard shortcuts for recording control
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -155,12 +155,16 @@ function App() {
         }
         // Close window
         invoke("hide_dictation_window");
+      } else if (event.key === 'Enter' || event.key === 'Return') {
+        if (audioRecorder.isRecording && !isProcessing) {
+          handleStopRecording();
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [audioRecorder.isRecording]);
+  }, [audioRecorder.isRecording, isProcessing]);
 
   const handleStartRecording = async () => {
     setError(null);
@@ -284,30 +288,39 @@ function App() {
         </div>
 
         {/* Controls */}
-        <div className="flex justify-center space-x-4">
-          {audioRecorder.isRecording ? (
-            <>
-              <Button
-                onClick={handleStopRecording}
-                disabled={isProcessing}
-                size="lg"
-                className="h-12 w-12 rounded-full bg-green-600 hover:bg-green-700 transition-all"
-              >
-                <Square className="h-5 w-5" />
-              </Button>
-              <Button
-                onClick={handleAbortRecording}
-                disabled={isProcessing}
-                size="lg"
-                variant="outline"
-                className="h-12 w-12 rounded-full border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </>
-          ) : (
-            <div className="text-center text-white/50 text-sm">
-              Press Cmd+Shift+V to start recording
+        <div className="flex flex-col items-center space-y-3">
+          <div className="flex justify-center space-x-4">
+            {audioRecorder.isRecording ? (
+              <>
+                <Button
+                  onClick={handleStopRecording}
+                  disabled={isProcessing}
+                  size="lg"
+                  className="h-12 w-12 rounded-full bg-green-600 hover:bg-green-700 transition-all"
+                >
+                  <Square className="h-5 w-5" />
+                </Button>
+                <Button
+                  onClick={handleAbortRecording}
+                  disabled={isProcessing}
+                  size="lg"
+                  variant="outline"
+                  className="h-12 w-12 rounded-full border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </>
+            ) : (
+              <div className="text-center text-white/50 text-sm">
+                Press Cmd+Shift+V to start recording
+              </div>
+            )}
+          </div>
+          
+          {/* Keyboard shortcuts hint */}
+          {audioRecorder.isRecording && !isProcessing && (
+            <div className="text-center text-white/40 text-xs">
+              Press Enter to submit • Escape to abort
             </div>
           )}
         </div>
