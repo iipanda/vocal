@@ -1,10 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import SettingsApp from "./SettingsApp";
-import "./App.css";
+import "./index.css";
 
-ReactDOM.createRoot(document.getElementById("settings-root") as HTMLElement).render(
+ReactDOM.createRoot(
+  document.getElementById("settings-root") as HTMLElement
+).render(
   <React.StrictMode>
     <SettingsApp />
-  </React.StrictMode>,
+  </React.StrictMode>
 );
