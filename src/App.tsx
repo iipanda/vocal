@@ -154,11 +154,11 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen items-center justify-center">
-      <div className="relative w-96 rounded-2xl border border-border/50 bg-background/80 p-6 shadow-2xl backdrop-blur-xl">
+      <div className="relative w-96 rounded-2xl border border-white/10 bg-black/90 p-6 shadow-2xl backdrop-blur-xl">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <div className="flex-1 text-center">
-            <p className="text-sm text-muted-foreground">{status}</p>
+            <p className="text-sm text-white/70">{status}</p>
           </div>
           <Button
             variant="ghost"
@@ -166,7 +166,7 @@ function App() {
             onClick={() => setShowSettings(true)}
             className="h-8 w-8"
           >
-            <SettingsIcon className="h-4 w-4" />
+            <SettingsIcon className="h-4 w-4 text-white/70" />
           </Button>
         </div>
 
@@ -209,10 +209,10 @@ function App() {
 
         {/* Processing overlay */}
         {isProcessing && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-background/80 backdrop-blur-sm">
+          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/80 backdrop-blur-sm">
             <div className="flex items-center space-x-2">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              <span className="text-sm text-muted-foreground">Processing...</span>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              <span className="text-sm text-white/70">Processing...</span>
             </div>
           </div>
         )}
