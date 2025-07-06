@@ -68,9 +68,7 @@ async fn transcribe_audio(audio_data: Vec<u8>, api_key: String) -> Result<String
 #[tauri::command]
 async fn refine_prompt(text: String, api_key: String, system_prompt: Option<String>) -> Result<String, String> {
     let client = reqwest::Client::new();
-    
-    let default_prompt = "Clean up the following spoken text by correcting any speech recognition errors, removing filler words (um, uh, like, you know, etc.), and fixing grammar while preserving the exact original meaning and intent. Do not shorten the content, change the tone, or alter the user's specific requests. Simply make it read naturally as if it were typed instead of spoken. Return only the cleaned text:".to_string();
-    let system_text = system_prompt.unwrap_or(default_prompt);
+    let system_text = system_prompt.unwrap();
     let prompt = format!("{}\n\n{}", system_text, text);
     
     let request_body = serde_json::json!({
