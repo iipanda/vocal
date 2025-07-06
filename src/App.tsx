@@ -23,7 +23,7 @@ function useAudioRecorder(): AudioRecorder {
   const start = async (): Promise<MediaStream | null> => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(mediaStream);
+      const mediaRecorder = new MediaRecorder(mediaStream, { mimeType: "audio/webm;codecs=opus" });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -46,7 +46,8 @@ function useAudioRecorder(): AudioRecorder {
         console.error("MediaRecorder error:", event);
       };
 
-      mediaRecorder.start();
+      // Start recording and emit data every second to ensure continuous chunks
+      mediaRecorder.start(1000);
       console.log("Recording started");
       setIsRecording(true);
       setStream(mediaStream);
@@ -61,7 +62,7 @@ function useAudioRecorder(): AudioRecorder {
     return new Promise((resolve) => {
       if (mediaRecorderRef.current && isRecording) {
         mediaRecorderRef.current.onstop = () => {
-          const blob = new Blob(chunksRef.current, { type: "audio/wav" });
+          const blob = new Blob(chunksRef.current, { type: "audio/webm" });
           console.log(`Recording stopped. Blob size: ${blob.size} bytes, duration estimate: ${blob.size / 16000}s`);
           resolve(blob);
           setIsRecording(false);
@@ -178,7 +179,7 @@ function App() {
       
       // Save audio blob to temp file for debugging
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `vocal-recording-${timestamp}.wav`;
+      const fileName = `vocal-recording-${timestamp}.webm`;
       
       try {
         // Create a download link to save the file locally

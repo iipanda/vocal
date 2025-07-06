@@ -49,8 +49,8 @@ async fn transcribe_audio(audio_data: Vec<u8>, api_key: String) -> Result<String
     
     let form = reqwest::multipart::Form::new()
         .part("file", reqwest::multipart::Part::bytes(audio_data)
-            .file_name("audio.wav")
-            .mime_str("audio/wav").unwrap())
+            .file_name("audio.webm")
+            .mime_str("audio/webm").unwrap())
         .text("model", "whisper-large-v3")
         .text("response_format", "json");
 
