@@ -83,6 +83,17 @@ function App() {
     const unlistenPromise = listen("start-recording", () => {
       setStatus("Listening...");
       setError(null);
+      
+      // Check API keys before starting recording
+      const groqApiKey = localStorage.getItem("groq_api_key") || "";
+      const anthropicApiKey = localStorage.getItem("anthropic_api_key") || "";
+      
+      if (!groqApiKey || !anthropicApiKey) {
+        setError("API keys not configured. Open Settings to configure your Groq and Anthropic API keys.");
+        setStatus("Configuration needed");
+        return;
+      }
+      
       if (
         !recordingStateRef.current.isRecording &&
         !recordingStateRef.current.isTranscribing
@@ -170,7 +181,14 @@ function App() {
 
         {/* Fixed height instruction area */}
         <div className="h-6 flex items-center justify-center">
-          {!audioRecorder.isRecording ? (
+          {error ? (
+            <button
+              onClick={() => invoke("show_settings_window")}
+              className="text-center text-blue-400 hover:text-blue-300 text-sm underline cursor-pointer"
+            >
+              Open Settings
+            </button>
+          ) : !audioRecorder.isRecording ? (
             <div className="text-center text-white/50 text-sm">
               Press your hotkey to start recording
             </div>
