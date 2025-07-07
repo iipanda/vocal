@@ -90,9 +90,10 @@ API keys are stored in localStorage for development. For production deployment, 
 
 ## To-Do List for Future Development
 
-1. **Add animations with Framer Motion**
-2. **Multiple profiles with different hotkeys**
-3. **Visual polish (general improvements)**
+1. **Multiple profiles with different hotkeys**
+2. **Visual polish (general improvements)**
+3. **Inline mode - Show minimal UI next to cursor/caret instead of popup window**
+4. **LLM provider fallback - Automatically switch to backup provider (e.g., Groq) when primary fails**
 
 ## Future Enhancements
 
