@@ -3,6 +3,7 @@
 
 mod cli;
 mod hooks;
+mod automation;
 
 use clap::Parser;
 use std::env;

@@ -5,6 +5,10 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 use std::sync::Mutex;
 
+mod automation;
+mod commands;
+mod hooks;
+
 // Store the current shortcut to unregister it later
 static CURRENT_SHORTCUT: Mutex<Option<String>> = Mutex::new(None);
 
@@ -307,7 +311,15 @@ pub fn run() {
             transcribe_audio,
             refine_prompt,
             copy_to_clipboard,
-            update_global_shortcut
+            update_global_shortcut,
+            commands::inject_prompt_to_claude_session,
+            commands::activate_hands_free_mode,
+            commands::deactivate_hands_free_mode,
+            commands::get_hands_free_status,
+            commands::trigger_emergency_stop,
+            commands::get_terminal_info,
+            commands::is_terminal_active,
+            commands::check_cycle_trigger
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

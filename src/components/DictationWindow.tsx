@@ -41,6 +41,10 @@ export function DictationWindow() {
   // Handle transcription workflow
   const handleTranscription = async (audioBlob: Blob) => {
     try {
+      if (appState.handsFreeMode.isActive) {
+        appState.setHandsFreeMode({ currentPhase: 'processing' });
+      }
+
       appState.setStatus("Transcribing...");
       const audioData = new Uint8Array(await audioBlob.arrayBuffer());
       
@@ -56,16 +60,37 @@ export function DictationWindow() {
         systemPrompt: config.systemPrompt,
       });
 
-      await invoke("copy_to_clipboard", { text: refinedPrompt });
-      appState.setStatus("✓ Copied to clipboard!");
+      if (appState.handsFreeMode.isActive) {
+        // Inject into Claude Code session
+        appState.setStatus("Sending to Claude Code...");
+        await invoke("inject_prompt_to_claude_session", { prompt: refinedPrompt });
+        appState.setStatus("✓ Sent to Claude Code!");
+        
+        appState.setHandsFreeMode({ 
+          currentPhase: 'processing',
+          autoApprovalCount: appState.handsFreeMode.autoApprovalCount + 1 
+        });
 
-      setTimeout(() => {
-        appState.hideWindow();
-      }, 2000);
+        setTimeout(() => {
+          appState.hideWindow();
+        }, 1500);
+      } else {
+        // Normal clipboard workflow
+        await invoke("copy_to_clipboard", { text: refinedPrompt });
+        appState.setStatus("✓ Copied to clipboard!");
+
+        setTimeout(() => {
+          appState.hideWindow();
+        }, 2000);
+      }
     } catch (error) {
       const { message } = handleError(error);
       appState.setError(message);
       appState.setStatus("Error occurred");
+      
+      if (appState.handsFreeMode.isActive) {
+        appState.setHandsFreeMode({ currentPhase: 'error' });
+      }
     }
   };
 
