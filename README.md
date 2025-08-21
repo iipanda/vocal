@@ -94,6 +94,7 @@ API keys are stored in localStorage for development. For production deployment, 
 2. **Visual polish (general improvements)**
 3. **Inline mode - Show minimal UI next to cursor/caret instead of popup window**
 4. **LLM provider fallback - Automatically switch to backup provider (e.g., Groq) when primary fails**
+5. **Custom vocabulary - Add custom words/terms for better speech recognition (e.g., "shadcn/ui", "Jira", programming terms)**
 
 ## Future Enhancements
 
