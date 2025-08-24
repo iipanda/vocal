@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAppState } from "@/hooks/use-app-state";
 import { invoke } from "@tauri-apps/api/core";
+import { CLISetup } from "./CLISetup";
 
 export function HandsFreeControls() {
   const appState = useAppState();
   const [terminalInfo, setTerminalInfo] = useState<string>("");
   const [showDetails, setShowDetails] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
 
   useEffect(() => {
     const updateTerminalInfo = async () => {
@@ -59,7 +61,12 @@ export function HandsFreeControls() {
   };
 
   return (
-    <div className="bg-black/80 border border-white/20 rounded-lg p-4 space-y-3">
+    <div className="space-y-3">
+      {showSetup && (
+        <CLISetup />
+      )}
+      
+      <div className="bg-black/80 border border-white/20 rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className={`w-3 h-3 rounded-full ${
@@ -176,6 +183,13 @@ export function HandsFreeControls() {
         </button>
         
         <button
+          onClick={() => setShowSetup(!showSetup)}
+          className="px-3 py-2 text-xs rounded-md bg-gray-700 hover:bg-gray-600 text-gray-200"
+        >
+          Setup CLI
+        </button>
+        
+        <button
           onClick={() => {
             const shortcuts = [
               "Ctrl+Shift+Q - Emergency stop",
@@ -189,6 +203,7 @@ export function HandsFreeControls() {
         >
           ?
         </button>
+      </div>
       </div>
     </div>
   );

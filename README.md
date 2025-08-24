@@ -36,11 +36,11 @@ A powerful voice-controlled coding assistant that seamlessly integrates with Cla
    bun run tauri dev
    ```
 
-4. **Setup Hands-Free Mode (Optional)**
-   ```bash
-   # From your project directory where you want to use Claude Code
-   ./path/to/vocal setup-hooks
-   ```
+4. **Setup CLI Access**
+   - Open the Vocal app
+   - Go to Hands-Free Controls → Click "Setup CLI" 
+   - Click "Install CLI Automatically" (or use manual command if needed)
+   - The `vocal` command is now available in your terminal
 
 ## Usage
 
@@ -51,11 +51,12 @@ A powerful voice-controlled coding assistant that seamlessly integrates with Cla
 - Refined prompt is copied to your clipboard
 
 ### 🚀 Hands-Free Mode
-1. **Setup**: Run `vocal setup-hooks` in your project directory
-2. **Activate**: Start Claude Code with `claude` in your terminal
-3. **Toggle**: Enable hands-free mode in the Vocal app
-4. **Use**: Press your hotkey, speak, press Enter - Claude Code processes automatically
-5. **Continue**: Recording automatically restarts after Claude Code completes
+1. **Setup CLI**: Use in-app "Setup CLI" button to install command line access
+2. **Install Hooks**: Run `vocal setup-hooks` in your project directory  
+3. **Start Claude**: Launch `claude` in your terminal
+4. **Activate**: Enable hands-free mode in the Vocal app
+5. **Use**: Press your hotkey, speak, press Enter - Claude Code processes automatically
+6. **Continue**: Recording automatically restarts after Claude Code completes
 
 #### Hands-Free Workflow
 ```
@@ -107,9 +108,31 @@ A powerful voice-controlled coding assistant that seamlessly integrates with Cla
 - Windows (PowerShell automation) - Planned
 - Linux (xdotool automation) - Planned
 
-## CLI Commands
+## CLI Installation & Usage
 
-### Hook Management
+### Installing CLI Access
+After installing Vocal.app from the DMG:
+
+1. **Automatic Installation (Recommended)**:
+   - Open Vocal app
+   - Click "Setup CLI" in Hands-Free Controls  
+   - Click "Install CLI Automatically"
+   - The `vocal` command is now available system-wide
+
+2. **Manual Installation**:
+   ```bash
+   # If automatic installation fails, run this command:
+   sudo ln -s '/Applications/Vocal.app/Contents/MacOS/vocal' '/usr/local/bin/vocal'
+   ```
+
+3. **Verify Installation**:
+   ```bash
+   vocal --help
+   ```
+
+### CLI Commands
+
+#### Hook Management
 ```bash
 # Install Claude Code hooks for hands-free mode
 vocal setup-hooks
@@ -121,12 +144,12 @@ vocal hook stop
 vocal hook user-prompt-submit
 ```
 
-### State Management
+#### State Management
 ```bash
-# Check hands-free status
+# Check hands-free status (future)
 vocal status
 
-# Emergency controls (future)
+# Emergency controls (future) 
 vocal emergency-stop
 vocal deactivate-hands-free
 ```
