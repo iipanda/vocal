@@ -319,7 +319,11 @@ pub fn run() {
             commands::trigger_emergency_stop,
             commands::get_terminal_info,
             commands::is_terminal_active,
-            commands::check_cycle_trigger
+            commands::check_cycle_trigger,
+            commands::install_cli_symlink,
+            commands::check_cli_installed,
+            commands::get_cli_install_command,
+            commands::open_terminal_with_command
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
