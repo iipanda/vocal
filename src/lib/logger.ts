@@ -83,5 +83,18 @@ export const logger = Logger.getInstance();
 
 // Legacy compatibility function
 export async function log(level: LogLevel, message: string, data?: any): Promise<void> {
-  logger.addLog(level, message, data);
+  switch (level) {
+    case "DEBUG":
+      logger.debug(message, data);
+      break;
+    case "INFO":
+      logger.info(message, data);
+      break;
+    case "WARN":
+      logger.warn(message, data);
+      break;
+    case "ERROR":
+      logger.error(message, data);
+      break;
+  }
 }

@@ -56,14 +56,12 @@ export class ApiService {
 
   async refinePrompt(options: RefinementOptions): Promise<string> {
     try {
-      const startTime = Date.now();
       const result = await invoke<string>("refine_prompt", {
         text: options.text,
         apiKey: options.apiKey,
         systemPrompt: options.systemPrompt,
       });
       
-      const duration = Date.now() - startTime;
       const estimatedCost = this.calculateRefinementCost(options.text.length, result.length);
       this.costs.refinement += estimatedCost;
       this.costs.total += estimatedCost;
@@ -74,7 +72,7 @@ export class ApiService {
     }
   }
 
-  private calculateTranscriptionCost(audioSize: number, duration: number): number {
+  private calculateTranscriptionCost(audioSize: number, _duration: number): number {
     // Estimate audio duration from size (rough approximation)
     const estimatedMinutes = audioSize / (1024 * 1024 * 0.5); // ~0.5MB per minute estimate
     return estimatedMinutes * APP_CONFIG.COSTS.GROQ_PER_MINUTE;

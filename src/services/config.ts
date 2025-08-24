@@ -87,8 +87,6 @@ export class ConfigService {
   }
 
   updateConfig(config: Partial<AppConfig>): void {
-    const currentConfig = this.getConfig();
-    const newConfig = { ...currentConfig, ...config };
 
     if (config.groqApiKey !== undefined) {
       localStorage.setItem(STORAGE_KEYS.GROQ_API_KEY, config.groqApiKey);

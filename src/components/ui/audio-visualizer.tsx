@@ -161,10 +161,9 @@ export function AudioVisualizer({
       const sampleRate = audioContextRef.current?.sampleRate || 44100;
       const frequencyResolution = sampleRate / AUDIO_CONFIG.FFT_SIZE;
       
-      // Convert frequency range to bin indices
-      const minBin = Math.floor(AUDIO_CONFIG.MIN_FREQUENCY / frequencyResolution);
-      const maxBin = Math.floor(AUDIO_CONFIG.MAX_FREQUENCY / frequencyResolution);
-      const usableBins = maxBin - minBin;
+      // Convert frequency range to bin indices for potential future use
+      // const minBin = Math.floor(AUDIO_CONFIG.MIN_FREQUENCY / frequencyResolution);
+      // const maxBin = Math.floor(AUDIO_CONFIG.MAX_FREQUENCY / frequencyResolution);
       
       // Create logarithmic frequency bands for more natural voice representation
       const logMin = Math.log(AUDIO_CONFIG.MIN_FREQUENCY);
