@@ -39,13 +39,9 @@ pub async fn install_cli_symlink() -> Result<String, String> {
             let _ = fs::remove_file(test_file);
             println!("Write permissions confirmed for /usr/local/bin");
         }
-        Err(e) => {
-            let error_msg = format!(
-                "Cannot write to /usr/local/bin: {}\n\n🔧 SOLUTION: Run this command in your terminal:\n\nsudo ln -s '{}' '{}'\n\n💡 Why this happens:\n• /usr/local/bin requires admin privileges to modify\n• This is a security feature of macOS\n• The manual command will prompt for your password", 
-                e, app_path, symlink_path
-            );
-            println!("ERROR: {}", error_msg);
-            return Ok(error_msg);
+        Err(_e) => {
+            println!("No write permissions, attempting with administrator privileges...");
+            return install_with_admin_privileges(&app_path, symlink_path);
         }
     }
     
@@ -181,6 +177,65 @@ pub async fn get_detailed_cli_status() -> Result<String, String> {
     }
     
     Ok(status)
+}
+
+fn install_with_admin_privileges(app_path: &str, symlink_path: &str) -> Result<String, String> {
+    println!("Requesting administrator privileges for CLI installation...");
+    
+    // Create the AppleScript that will show proper context to the user
+    let sudo_script = format!(
+        r#"display dialog "Vocal needs administrator privileges to install the command-line interface.
+
+This will create a symlink in /usr/local/bin/vocal that points to:
+{}
+
+This allows you to run 'vocal setup-hooks' from any terminal." with title "Vocal CLI Installation" with icon note buttons {{"Cancel", "Install"}} default button "Install"
+
+if button returned of result is "Install" then
+    do shell script "mkdir -p /usr/local/bin && ln -sf '{}' '{}'" with administrator privileges
+end if"#,
+        app_path, app_path, symlink_path
+    );
+    
+    println!("Showing installation dialog to user...");
+    
+    // Execute AppleScript with proper context
+    let output = Command::new("osascript")
+        .arg("-e")
+        .arg(&sudo_script)
+        .output();
+    
+    match output {
+        Ok(result) => {
+            if result.status.success() {
+                let success_msg = "✅ CLI installed successfully with administrator privileges!\n\nYou can now run 'vocal setup-hooks' in any terminal.\n\nTo test: Open Terminal and run 'vocal --help'";
+                println!("SUCCESS: {}", success_msg);
+                Ok(success_msg.to_string())
+            } else {
+                let stderr = String::from_utf8_lossy(&result.stderr);
+                if stderr.contains("User canceled") || stderr.contains("User cancelled") || stderr.contains("gave up") {
+                    let cancel_msg = format!(
+                        "❌ Installation cancelled by user.\n\n🔧 MANUAL ALTERNATIVE:\nRun this command in Terminal:\n\nsudo ln -s '{}' '{}'\n\n💡 This will ask for your password and install the CLI.",
+                        app_path, symlink_path
+                    );
+                    Ok(cancel_msg)
+                } else {
+                    let error_msg = format!(
+                        "❌ Failed to install with administrator privileges: {}\n\n🔧 MANUAL SOLUTION:\nRun this command in Terminal:\n\nsudo ln -s '{}' '{}'\n\n💡 Common issues:\n• Make sure you enter your password correctly\n• Ensure your user has administrator privileges\n• Try running the manual command in Terminal", 
+                        stderr, app_path, symlink_path
+                    );
+                    Ok(error_msg)
+                }
+            }
+        }
+        Err(e) => {
+            let error_msg = format!(
+                "❌ Could not request administrator privileges: {}\n\n🔧 MANUAL SOLUTION:\nRun this command in Terminal:\n\nsudo ln -s '{}' '{}'\n\n💡 This usually happens when:\n• AppleScript is not available\n• System security settings prevent privilege escalation\n• The app doesn't have necessary permissions",
+                e, app_path, symlink_path
+            );
+            Ok(error_msg)
+        }
+    }
 }
 
 fn get_app_binary_path() -> Result<String, String> {
