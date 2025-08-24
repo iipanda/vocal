@@ -44,14 +44,24 @@ async fn hide_dictation_window(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 async fn show_settings_window(app: AppHandle) -> Result<(), String> {
-    // Try to get existing window first
+    println!("Attempting to show settings window...");
+    
+    // The settings window should already exist from tauri.conf.json
     if let Some(window) = app.get_webview_window("settings") {
-        window.show().map_err(|e| e.to_string())?;
-        window.set_focus().map_err(|e| e.to_string())?;
+        println!("Found existing settings window, showing it...");
+        window.show().map_err(|e| {
+            println!("Failed to show settings window: {}", e);
+            e.to_string()
+        })?;
+        window.set_focus().map_err(|e| {
+            println!("Failed to focus settings window: {}", e);
+            e.to_string()
+        })?;
+        println!("Settings window shown successfully");
         return Ok(());
     }
     
-    // If window doesn't exist, create a new one
+    // If for some reason the pre-configured window doesn't exist, create one
     println!("Settings window not found, creating new one...");
     use tauri::{WebviewWindowBuilder, WebviewUrl};
     
@@ -75,9 +85,15 @@ async fn show_settings_window(app: AppHandle) -> Result<(), String> {
         format!("Failed to create settings window: {}", e)
     })?;
     
-    settings_window.show().map_err(|e| e.to_string())?;
-    settings_window.set_focus().map_err(|e| e.to_string())?;
-    println!("Settings window created and shown");
+    settings_window.show().map_err(|e| {
+        println!("Failed to show created settings window: {}", e);
+        e.to_string()
+    })?;
+    settings_window.set_focus().map_err(|e| {
+        println!("Failed to focus created settings window: {}", e);
+        e.to_string()
+    })?;
+    println!("Settings window created and shown successfully");
     Ok(())
 }
 
