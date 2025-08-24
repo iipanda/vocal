@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 
 import { AudioVisualizer } from "@/components/ui/audio-visualizer";
+import { HandsFreeControls } from "@/components/HandsFreeControls";
 import { useAppState } from "@/hooks/use-app-state";
 import { useConfig } from "@/hooks/use-config";
 import { useRecording } from "@/hooks/use-recording";
@@ -151,7 +152,9 @@ export function DictationWindow() {
 
   return (
     <div className="flex h-screen w-screen items-center justify-center">
-      <div className="relative w-96 rounded-2xl border border-white/10 bg-black p-6 shadow-2xl">
+      <div className="flex flex-col items-center space-y-4">
+        {/* Main recording interface */}
+        <div className="relative w-96 rounded-2xl border border-white/10 bg-black p-6 shadow-2xl">
         {/* Fixed height status area */}
         <div className="mb-2 text-center h-4 flex items-center justify-center">
           <p className="text-sm text-white/70">{appState.status}</p>
@@ -203,6 +206,12 @@ export function DictationWindow() {
             </div>
           </div>
         )}
+        </div>
+        
+        {/* Hands-Free Controls */}
+        <div className="w-96">
+          <HandsFreeControls />
+        </div>
       </div>
     </div>
   );
