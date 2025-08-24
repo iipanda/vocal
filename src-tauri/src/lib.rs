@@ -339,6 +339,7 @@ pub fn run() {
             commands::install_cli_symlink,
             commands::check_cli_installed,
             commands::get_cli_install_command,
+            commands::get_detailed_cli_status,
             commands::open_terminal_with_command
         ])
         .build(tauri::generate_context!())
